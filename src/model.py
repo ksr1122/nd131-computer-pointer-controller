@@ -47,17 +47,17 @@ class Model:
         except Exception as e:
             raise ValueError("Could not load the model.\n {}".format(e))
 
-    def predict(self, image):
-        '''
-        TODO: You will need to complete this method.
-        This method is meant for running predictions on the input image.
-        '''
-        raise NotImplementedError
+    def exec_infer(self, image):
+        p_frame = self.preprocess_input(image)
+        try:
+            return self.net.infer({self.input_name: p_frame})
+        except Exception as e:
+            raise ValueError("Could not execute infer request.\n {}".format(e))
 
     def check_model(self):
         raise NotImplementedError
 
-    def preprocess_input(self, image):
+    def preprocess_input(self, image): # input shape BxCxHxW
         try:
             p_frame = cv2.resize(image, (self.input_shape[3], self.input_shape[2]))
             p_frame = p_frame.transpose((2,0,1))
