@@ -1,4 +1,62 @@
+import os
 import argparse
+
+from input_feeder import InputFeeder
+from mouse_controller import MouseController
+
+from face_detection import FaceDetect
+from gaze_estimation import GazeEstimate
+from head_pose_estimation import HeadPoseEstimate
+from facial_landmarks_detection import FacialLandMarkDetect
+
+class Pipeline:
+
+    def __init__(self, args):
+        self.log_level = "INFO" if os.environ.get("LOGLEVEL") == "INFO" or args.verbose_stage else "WARNING"
+        log.basicConfig(level=self.log_level)
+
+        input_type = 'cam' if args.cam else 'video'
+        self.feed = InputFeeder(input_type, args.video)
+        if not self.feed.load_data():
+            raise Exception('Input valid image or video file')
+
+        fps, w, h = self.feed.get_props()
+        self.out_video = cv2.VideoWriter(args.out, cv2.VideoWriter_fourcc(*'MJPG'), fps, (w, h), True)
+
+        args.head_pose_model = os.path.join(args.head_pose_model,
+                                            args.precision, os.path.basename(args.head_pose_model))
+        args.landmarks_model = os.path.join(args.landmarks_model,
+                                            args.precision, os.path.basename(args.landmarks_model))
+        args.gaze_model = os.path.join(args.gaze_model,
+                                       args.precision, os.path.basename(args.gaze_model))
+
+        self.fd = FaceDetect(args.face_model, args.device, args.extension, args.threshold)
+        self.fd.load_model()
+        self.fd.set_out_size(w, h)
+
+        self.hp = HeadPoseEstimate(args.head_pose_model, args.device, args.extension, args.threshold)
+        self.hp.load_model()
+
+        self.fl = FacialLandMarkDetect(args.landmarks_model, args.device, args.extension, args.threshold)
+        self.fl.load_model()
+
+        self.gz = GazeEstimate(args.gaze_model, args.device, args.extension, args.threshold)
+        self.gz.load_model()
+
+        self.mc = MouseController()
+        self.verbose_stage = args.verbose_stage
+
+    def run(self):
+        pass
+
+    def close(self):
+        self.feed.close()
+        self.out_video.release()
+
+def main(args):
+    pipeline = Pipeline(args)
+    pipeline.run()
+    pipeline.close()
 
 def build_argparser():
     """
@@ -40,4 +98,4 @@ def build_argparser():
 
 if __name__ == '__main__':
     args = build_argparser().parse_args()
-
+    main(args)
