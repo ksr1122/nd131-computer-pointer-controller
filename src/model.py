@@ -54,9 +54,6 @@ class Model:
         except Exception as e:
             raise ValueError("Could not execute infer request.\n {}".format(e))
 
-    def check_model(self):
-        raise NotImplementedError
-
     def preprocess_input(self, image): # input shape BxCxHxW
         try:
             p_frame = cv2.resize(image, (self.input_shape[3], self.input_shape[2]))
@@ -65,10 +62,17 @@ class Model:
             return p_frame
         except Exception as e:
             raise ValueError("Could not preprocess the image.\n {}".format(e))
+    
+    def draw_rect(self, image, from_pt, to_pt, color=(0, 255, 0)):
+        cv2.rectangle(image, from_pt, to_pt, color, 1)
 
-    def preprocess_output(self, outputs):
-    '''
-    Before feeding the output of this model to the next model,
-    you might have to preprocess the output. This function is where you can do that.
-    '''
-        raise NotImplementedError
+    def draw_text(self, image, text, org, color=(0, 255, 255)):
+        cv2.putText(image, text, org, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+
+    def draw_circle(self, image, center, radius, color=(255, 0, 255)):
+        cv2.circle(image, center, radius, color, thickness=-1)
+
+    def set_out_size(self, w, h):
+        self.w = w
+        self.h = h
+
