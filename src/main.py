@@ -52,6 +52,23 @@ class Pipeline:
         x2, y2 = x+int(width/2), y+int(height/2)
         return x1, y1, x2, y2
 
+    def verbose_stage_draw(self, frame, face_coord, eye_coord, head_pose_angles, mouse_coord):
+        f_x1, f_y1, f_x2, f_y2 = face_coord
+        self.fd.draw_rect(frame, (f_x1, f_y1), (f_x2, f_y2))
+
+        e_x1, e_y1, e_x2, e_y2 = eye_coord
+        left_x, left_y, right_x, right_y = self.get_bounding_rect(e_x1, e_y1)
+        self.fl.draw_rect(frame, (f_x1+left_x, f_y1+left_y),
+                                 (f_x1+right_x, f_y1+right_y))
+        left_x, left_y, right_x, right_y = self.get_bounding_rect(e_x2, e_y2)
+        self.fl.draw_rect(frame, (f_x1+left_x, f_y1+left_y),
+                                 (f_x1+right_x, f_y1+right_y))
+
+        text = "Yaw: {:+.0f}, Pitch: {:+.0f}, Roll: {:+.0f}".format(*head_pose_angles)
+        self.hp.draw_text(frame, text, (100, 100))
+
+        self.gz.draw_circle(frame, mouse_coord, 10)
+
     def run(self):
         abs_mouse_x = abs_mouse_y = 0
         for frame in self.feed.next_batch():
@@ -80,6 +97,23 @@ class Pipeline:
             g_x, g_y, _ = self.gz.predict(left_eye_frame, right_eye_frame, [[*head_pose_angles]])
 
             self.mc.move(g_x, g_y)
+
+            if self.verbose_stage:
+                _, w, h = self.feed.get_props()
+                if abs_mouse_x == 0 and abs_mouse_y == 0:
+                    abs_mouse_x = int(f_x1+(e_x1 + e_x2)/2)
+                    abs_mouse_y = int(f_y1+(e_y1 + e_y2)/2)
+                else:
+                    abs_mouse_x += int(g_x * w / 250)
+                    abs_mouse_y -= int(g_y * h / 250)
+
+                self.verbose_stage_draw(frame,
+                                        (f_x1, f_y1, f_x2, f_y2),
+                                        (e_x1, e_y1, e_x2, e_y2),
+                                        head_pose_angles,
+                                        (abs_mouse_x, abs_mouse_y))
+
+            self.out_video.write(frame)
 
     def close(self):
         self.feed.close()
