@@ -8,12 +8,11 @@ Sample usage:
     feed.close()
 '''
 import cv2
-from numpy import ndarray
 
 import logging as log
 
 class InputFeeder:
-    def __init__(self, input_type, input_file = None):
+    def __init__(self, input_type, input_file=None):
         '''
         input_type: str, The type of input. Can be 'video' for video file, 'image' for image file,
                     or 'cam' to use webcam feed.
@@ -45,7 +44,7 @@ class InputFeeder:
         If input_type is 'image', then it returns the same image.
         '''
         while True:
-            flag, frame=self.cap.read()
+            flag, frame = self.cap.read()
             if not flag:
                 break
             yield frame
