@@ -46,8 +46,40 @@ class Pipeline:
         self.mc = MouseController()
         self.verbose_stage = args.verbose_stage
 
+    def get_bounding_rect(self, x, y):
+        width, height = 40, 20
+        x1, y1 = x-int(width/2), y-int(height/2)
+        x2, y2 = x+int(width/2), y+int(height/2)
+        return x1, y1, x2, y2
+
     def run(self):
-        pass
+        abs_mouse_x = abs_mouse_y = 0
+        for frame in self.feed.next_batch():
+            f_x1, f_y1, f_x2, f_y2 = self.fd.predict(frame)
+
+            face_frame = frame[f_y1:f_y2, f_x1:f_x2]
+
+            if not face_frame.size: # skip if face not detected
+                continue
+
+            head_pose_angles = self.hp.predict(face_frame)
+
+            self.fl.set_out_size(f_x2-f_x1, f_y2-f_y1)
+            e_x1, e_y1, e_x2, e_y2 = self.fl.predict(face_frame)
+
+            left_x, left_y, right_x, right_y = self.get_bounding_rect(e_x1, e_y1)
+            left_eye_frame = face_frame[left_y:right_y,
+                                        left_x:right_x]
+            left_x, left_y, right_x, right_y = self.get_bounding_rect(e_x2, e_y2)
+            right_eye_frame = face_frame[left_y:right_y,
+                                         left_x:right_x]
+
+            if not left_eye_frame.size or not right_eye_frame.size: # skip if eyes not detected
+                continue
+
+            g_x, g_y, _ = self.gz.predict(left_eye_frame, right_eye_frame, [[*head_pose_angles]])
+
+            self.mc.move(g_x, g_y)
 
     def close(self):
         self.feed.close()
