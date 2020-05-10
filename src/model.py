@@ -1,5 +1,6 @@
 import os
 import cv2
+import time
 
 import logging as log
 
@@ -38,12 +39,13 @@ class Model:
         self.output_shape = self.model.outputs[self.output_name].shape
 
     def load_model(self):
-        '''
-        TODO: You will need to complete this method.
-        This method is for loading the model to the device specified by the user.
-        If your model requires any Plugins, this is where you can load them.
-        '''
-        raise NotImplementedError
+        try:
+            start_time = time.time()
+            self.net = self.core.load_network(network=self.model, device_name=self.device, num_requests=1)
+            log.info('Model {} Load time: {:.2f} msecs'.format(os.path.basename(self.model_name), 
+                                                              (time.time()-start_time)*1000))
+        except Exception as e:
+            raise ValueError("Could not load the model.\n {}".format(e))
 
     def predict(self, image):
         '''
